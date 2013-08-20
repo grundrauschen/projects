@@ -19,10 +19,6 @@ endif
 export RIOTBASE =$(CURDIR)/../RIOT
 export RIOTBOARD =$(CURDIR)/../../boards
 
-ifeq ($(BOARD),stm32f4discovery)
-	include Makefile.$(BOARD)
-endif
-
 ## Modules to include. 
 
 #USEMODULE += shell
