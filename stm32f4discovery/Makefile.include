@@ -1,7 +1,5 @@
 export CPU = stm32f407vg
 
-USEMODULE += stm32f4xxstdperi
-
 # toolchain config
 export FPU_USAGE = -mfloat-abi=hard -mfpu=fpv4-sp-d16
 export PREFIX = arm-none-eabi-
@@ -14,7 +12,8 @@ export AS = $(PREFIX)as
 export LINK = $(PREFIX)gcc
 export SIZE = $(PREFIX)size
 export OBJCOPY = $(PREFIX)objcopy
-FLASHER = st-flash
+export FLASHER = st-flash
+export FFLAGS = write bin/$(PROJECT).bin 0x8000000  
 TERMPROG = $(RIOTBASE)/dist/tools/pyterm/pyterm.py
 LINKFLAGS = -DUSE_STDPERIPH_DRIVER -DUSE_STM32_DISCOVERY -g3 -ggdb -std=gnu99 -mcpu=cortex-m4 $(FPU_USAGE) -mlittle-endian -static -lgcc -mthumb -mthumb-interwork -nostartfiles -T$(RIOTBASE)/cpu/$(CPU)/stm32f407vg_linkerscript.ld
 
