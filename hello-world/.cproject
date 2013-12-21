@@ -206,7 +206,13 @@
 		<scannerConfigBuildInfo instanceId="0.282919682.1485084547">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="0.282919682;0.282919682.;ilg.gnuarmeclipse.managedbuild.cross.tool.c.compiler.546741603;ilg.gnuarmeclipse.managedbuild.cross.tool.c.compiler.input.67126183">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="0.282919682">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="0.282919682;0.282919682.;ilg.gnuarmeclipse.managedbuild.cross.tool.cpp.compiler.474184447;ilg.gnuarmeclipse.managedbuild.cross.tool.cpp.compiler.input.495693494">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 	</storageModule>
