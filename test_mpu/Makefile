@@ -12,7 +12,7 @@ export PROJECT =test_mpu
 
 # for easy switching of boards
 ifeq ($(strip $(BOARD)),)
-	export BOARD = msba2
+	export BOARD = stm32f4discovery
 endif
 
 # this has to be the absolute path of the RIOT-base dir
