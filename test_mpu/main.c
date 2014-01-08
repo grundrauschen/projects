@@ -15,7 +15,7 @@ int main(void)
     uint32_t writesize = 64;
     uint8_t *writepoint;
     writepoint = thread->stack_start;
-/*	enable_unprivileged_mode();*/
+	enable_unprivileged_mode();
     for (uint32_t i=0; i<= writesize; i++) {
     	*writepoint = 0xAA;
     	writepoint++;
