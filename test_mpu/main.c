@@ -197,7 +197,7 @@ void test_thread_creation(void){
 	thread.priority = 14;
 	thread.function = thread1;
 	thread.name = thread1_name;
-	pid1 = thread_create_desc(&thread);
+	pid1 = svc_thread_create(&thread);
 	printf("PID: %d\n", pid1);
 	//thread_create(1024, 13, CREATE_WOUT_YIELD | CREATE_STACKTEST, thread1, thread1_name);
 	svc_thread_sleep();
@@ -211,7 +211,7 @@ void test_msg_priv_reciever_waiting(void){
 	thread.priority = 11;
 	thread.function = receiver;
 	thread.name = tmur5;
-	pid1 = thread_create_desc(&thread);
+	pid1 = svc_thread_create(&thread);
 	puts("Creating Send Task\n");
 	blocking = 1;
 	thread_description thread2;
@@ -232,7 +232,7 @@ void measure_systick(void){
 	thread.priority = 13;
 	thread.function = receiver_systick;
 	thread.name = tmur5;
-	pid1 = thread_create_desc(&thread);
+	pid1 = svc_thread_create(&thread);
 	puts("Creating Send Task\n");
 	blocking = 1;
 	thread_description thread2;
@@ -241,7 +241,7 @@ void measure_systick(void){
 	thread2.priority = 14;
 	thread2.function = sender_systick;
 	thread2.name = tmur6;
-	pid2 = thread_create_desc(&thread2);
+	pid2 = svc_thread_create(&thread2);
 	svc_switch_context_exit();
 }
 
@@ -253,7 +253,7 @@ void test_wait_and_reply(void){
 	thread.priority = 11;
 	thread.function = receiver_reply;
 	thread.name = tmur11;
-	pid1 = thread_create_desc(&thread);
+	pid1 = svc_thread_create(&thread);
 	puts("Creating Send Task\n");
 	blocking = 1;
 	thread_description thread2;
@@ -262,7 +262,7 @@ void test_wait_and_reply(void){
 	thread2.priority = 12;
 	thread2.function = sender_wait_for_reply;
 	thread2.name = tmur12;
-	pid2 = thread_create_desc(&thread2);
+	pid2 = svc_thread_create(&thread2);
 	svc_switch_context_exit();
 }
 
@@ -274,7 +274,7 @@ void test_msg_priv_reciever_waiting_buffer(void){
 	thread.priority = 11;
 	thread.function = receiver_buffered;
 	thread.name = tmur9;
-	pid1 = thread_create_desc(&thread);
+	pid1 = svc_thread_create(&thread);
 	puts("Creating Send Task\n");
 	blocking = 1;
 	thread_description thread2;
@@ -283,7 +283,7 @@ void test_msg_priv_reciever_waiting_buffer(void){
 	thread2.priority = 12;
 	thread2.function = sender;
 	thread2.name = tmur10;
-	pid2 = thread_create_desc(&thread2);
+	pid2 = svc_thread_create(&thread2);
 	svc_switch_context_exit();
 }
 
@@ -295,7 +295,7 @@ void test_msg_priv_reciever_waiting_payload(void){
 	thread.priority = 12;
 	thread.function = receiver_payload;
 	thread.name = tmur7;
-	pid1 = thread_create_desc(&thread);
+	pid1 = svc_thread_create(&thread);
 	puts("Creating Send Task\n");
 	blocking = 1;
 	thread_description thread2;
@@ -304,7 +304,7 @@ void test_msg_priv_reciever_waiting_payload(void){
 	thread2.priority = 12;
 	thread2.function = sender_payload;
 	thread2.name = tmur8;
-	pid2 = thread_create_desc(&thread2);
+	pid2 = svc_thread_create(&thread2);
 	svc_switch_context_exit();
 }
 
@@ -316,7 +316,7 @@ void test_msg_underpriviliged_reciever(void){
 	thread.priority = 12;
 	thread.function = receiver;
 	thread.name = tmur1;
-	pid1 = thread_create_desc(&thread);
+	pid1 = svc_thread_create(&thread);
 	puts("Creating Send Task\n");
 	blocking = 1;
 	thread_description thread2;
@@ -325,7 +325,7 @@ void test_msg_underpriviliged_reciever(void){
 	thread2.priority = 11;
 	thread2.function = sender;
 	thread2.name = tmur2;
-	pid2 = thread_create_desc(&thread2);
+	pid2 = svc_thread_create(&thread2);
 	svc_switch_context_exit();
 }
 
@@ -337,7 +337,7 @@ void test_msg_underpriviliged_reciever_payload(void){
 	thread.priority = 12;
 	thread.function = receiver_payload;
 	thread.name = tmur3;
-	pid1 = thread_create_desc(&thread);
+	pid1 = svc_thread_create(&thread);
 	puts("Creating Send Task\n");
 	blocking = 1;
 	thread_description thread2;
@@ -346,8 +346,31 @@ void test_msg_underpriviliged_reciever_payload(void){
 	thread2.priority = 11;
 	thread2.function = sender_payload;
 	thread2.name = tmur4;
-	pid2 = thread_create_desc(&thread2);
+	pid2 = svc_thread_create(&thread2);
 	svc_switch_context_exit();
+}
+
+void check_mpu_safety(tcb_t *thread){
+	uint32_t *pointer = thread->memory->start_address + 50;
+	printf("Writing to Pointer: %#010x\n", pointer);
+	*pointer = 0xAAAA;
+	printf("Pointer Value: %#010x\n", *pointer);
+
+
+	printf("TCB Endaddress: %#010x\n\n", thread->memory->end_address);
+	pointer = thread->memory->end_address - 4 ;
+	int i = 0;
+	for (i=0; i < 8; i++){
+	printf("Writing to Pointer: %#010x\n", pointer);
+	*pointer = 0xAAAAAAAA;
+	printf("Pointer Value: %#010x\n", *pointer);
+	pointer = pointer++;
+	}
+
+	pointer = thread->memory->start_address - 1;
+	printf("Writing to Pointer: %#010x\n", pointer);
+	*pointer = 0xAAAA;
+	printf("Pointer Value: %#010x\n", *pointer);
 }
 
 int main(void)
@@ -360,10 +383,8 @@ int main(void)
     printf("Controll-Register: %#010x\n\n", __get_CONTROL());
 
 
-    testcase = 8;
+    testcase = 9;
     printf("Testcase: %d\n\n", testcase);
-
-    //enable_unprivileged_mode();
 
     // Configure Systick
     *STRVR = 0xFFFFFF;  // max count
@@ -377,6 +398,12 @@ int main(void)
 
 	size = strlen(string);
 
+	//disable for systick test
+	if (testcase != 8){
+		enable_unprivileged_mode();
+	}
+
+    int i;
     switch(testcase){
     	case 0: break;
     	case 1: test_thread_creation();
@@ -394,6 +421,8 @@ int main(void)
     	case 7: test_wait_and_reply();
     			break;
     	case 8: measure_systick();
+    			break;
+    	case 9: check_mpu_safety(thread);
     			break;
     	default: break;
     }
