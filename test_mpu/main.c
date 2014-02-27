@@ -19,6 +19,8 @@ const char *tmur5 = "test_msg_priviliged_reciever: receiver";
 const char *tmur6 = "test_msg_priviliged_reciever: sender";
 const char *tmur7 = "test_msg_priviliged_reciever_payload: receiver";
 const char *tmur8 = "test_msg_priviliged_reciever_payload: sender";
+const char *tmur9 = "test_msg_priviliged_reciever_buffered: receiver";
+const char *tmur10 = "test_msg_priviliged_reciever_buffered: sender";
 
 static int pid1;
 static int pid2;
@@ -43,6 +45,20 @@ void receiver(void){
 		printf("RESC: MSG Sender PID %d\n", m.sender_pid);
 		printf("RESC: MSG Size %d\n", m.size);
 		printf("RESC: MSG Type %d\n", m.type);
+	}
+}
+
+void receiver_buffered(void){
+	puts("This is Receiver\n");
+	while (1){
+		msg_t m[16];
+		svc_msg_init_queue(&m, 16);
+		svc_thread_sleep();
+		svc_msg_receive(&m);
+		printf("RESC: MSG Value %d\n", m[0].content.value);
+		printf("RESC: MSG Sender PID %d\n", m[0].sender_pid);
+		printf("RESC: MSG Size %d\n", m[0].size);
+		printf("RESC: MSG Type %d\n", m[0].type);
 	}
 }
 
@@ -116,7 +132,7 @@ void test_msg_priv_reciever_waiting(void){
 	thread_description thread;
 	thread.stacksize = 512;
 	thread.flags = CREATE_WOUT_YIELD | CREATE_STACKTEST;
-	thread.priority = 12;
+	thread.priority = 11;
 	thread.function = receiver;
 	thread.name = tmur5;
 	pid1 = thread_create_desc(&thread);
@@ -128,6 +144,27 @@ void test_msg_priv_reciever_waiting(void){
 	thread2.priority = 12;
 	thread2.function = sender;
 	thread2.name = tmur6;
+	pid2 = thread_create_desc(&thread2);
+	svc_switch_context_exit();
+}
+
+void test_msg_priv_reciever_waiting_buffer(void){
+	puts("Creating Recieve Task\n");
+	thread_description thread;
+	thread.stacksize = 512;
+	thread.flags = CREATE_WOUT_YIELD | CREATE_STACKTEST;
+	thread.priority = 11;
+	thread.function = receiver_buffered;
+	thread.name = tmur9;
+	pid1 = thread_create_desc(&thread);
+	puts("Creating Send Task\n");
+	blocking = 1;
+	thread_description thread2;
+	thread2.stacksize = 512;
+	thread2.flags = CREATE_WOUT_YIELD | CREATE_STACKTEST;
+	thread2.priority = 12;
+	thread2.function = sender;
+	thread2.name = tmur10;
 	pid2 = thread_create_desc(&thread2);
 	svc_switch_context_exit();
 }
@@ -205,7 +242,7 @@ int main(void)
     printf("Controll-Register: %#010x\n\n", __get_CONTROL());
 
 
-    testcase = 5;
+    testcase = 6;
     printf("Testcase: %d\n\n", testcase);
 
     enable_unprivileged_mode();
@@ -223,6 +260,8 @@ int main(void)
     	case 4: test_msg_underpriviliged_reciever_payload();
     			break;
     	case 5: test_msg_priv_reciever_waiting_payload();
+    			break;
+    	case 6: test_msg_priv_reciever_waiting_buffer();
     			break;
     	default: break;
     }
