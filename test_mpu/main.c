@@ -8,6 +8,13 @@
 #include <thread.h>
 #include "main.h"
 
+    // Systick regs
+static int *STCSR = (int *)0xE000E010;
+static int *STRVR = (int *)0xE000E014;
+static int *STCVR = (int *)0xE000E018;
+
+
+
 unsigned int testcase = 0;
 
 const char *thread1_name = "thread1";
@@ -23,6 +30,8 @@ const char *tmur9 = "test_msg_priviliged_reciever_buffered: receiver";
 const char *tmur10 = "test_msg_priviliged_reciever_buffered: sender";
 const char *tmur11 = "test_msg_wait_for_reply: receiver";
 const char *tmur12 = "test_msg_wait_for_reply: sender";
+const char *tmur13 = "test_msg_wait_for_reply: receiver";
+const char *tmur14 = "test_systick: sender";
 
 static int pid1;
 static int pid2;
@@ -47,6 +56,22 @@ void receiver(void){
 		printf("RESC: MSG Sender PID %d\n", m.sender_pid);
 		printf("RESC: MSG Size %d\n", m.size);
 		printf("RESC: MSG Type %d\n", m.type);
+	}
+}
+
+void receiver_systick(void){
+	puts("This is Receiver\n");
+	while (1){
+		msg_t m;
+		svc_msg_receive(&m);
+		uint32_t r_time;
+		r_time = *STCVR;
+		int32_t diff;
+		diff = m.content.value - r_time; /* SysTick counts backwards */
+		printf("Sender Systick %d\n", m.content.value);
+		printf("Resceiver Systick %d\n", r_time);
+		printf("Ticks for transport %d\n", diff);
+
 	}
 }
 
@@ -111,6 +136,17 @@ void sender(void){
 	printf("Send: MSG Sender PID %d\n", m.sender_pid);
 	printf("Send: MSG Size %d\n", m.size);
 	printf("Send: MSG Type %d\n", m.type);
+	svc_msg_send(&m, pid1 , blocking);
+	svc_thread_sleep();
+}
+
+void sender_systick(void){
+	puts("This is Sender\n");
+	msg_t m;
+	m.sender_pid = thread_pid;
+	m.size = 0;
+	m.type = 5;
+	m.content.value = *STCVR;
 	svc_msg_send(&m, pid1 , blocking);
 	svc_thread_sleep();
 }
@@ -183,6 +219,27 @@ void test_msg_priv_reciever_waiting(void){
 	thread2.flags = CREATE_WOUT_YIELD | CREATE_STACKTEST;
 	thread2.priority = 12;
 	thread2.function = sender;
+	thread2.name = tmur6;
+	pid2 = thread_create_desc(&thread2);
+	svc_switch_context_exit();
+}
+
+void measure_systick(void){
+	puts("Creating Recieve Task\n");
+	thread_description thread;
+	thread.stacksize = 512;
+	thread.flags = CREATE_WOUT_YIELD | CREATE_STACKTEST;
+	thread.priority = 13;
+	thread.function = receiver_systick;
+	thread.name = tmur5;
+	pid1 = thread_create_desc(&thread);
+	puts("Creating Send Task\n");
+	blocking = 1;
+	thread_description thread2;
+	thread2.stacksize = 512;
+	thread2.flags = CREATE_WOUT_YIELD | CREATE_STACKTEST;
+	thread2.priority = 14;
+	thread2.function = sender_systick;
 	thread2.name = tmur6;
 	pid2 = thread_create_desc(&thread2);
 	svc_switch_context_exit();
@@ -303,10 +360,20 @@ int main(void)
     printf("Controll-Register: %#010x\n\n", __get_CONTROL());
 
 
-    testcase = 7;
+    testcase = 8;
     printf("Testcase: %d\n\n", testcase);
 
-    enable_unprivileged_mode();
+    //enable_unprivileged_mode();
+
+    // Configure Systick
+    *STRVR = 0xFFFFFF;  // max count
+    *STCVR = 0;         // force a re-load of the counter value register
+    *STCSR = 5;         // enable FCLK count without interrupt
+
+	printf("Systick %d\n", *STCVR);
+	printf("Systick %d\n", *STCVR);
+
+    printf("SysTick CTRL: %#010x\n", SysTick->CTRL);
 
 	size = strlen(string);
 
@@ -325,6 +392,8 @@ int main(void)
     	case 6: test_msg_priv_reciever_waiting_buffer();
     			break;
     	case 7: test_wait_and_reply();
+    			break;
+    	case 8: measure_systick();
     			break;
     	default: break;
     }
