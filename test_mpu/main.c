@@ -32,6 +32,7 @@ const char *tmur11 = "test_msg_wait_for_reply: receiver";
 const char *tmur12 = "test_msg_wait_for_reply: sender";
 const char *tmur13 = "test_msg_wait_for_reply: receiver";
 const char *tmur14 = "test_systick: sender";
+const char *cmpu_name = "test_mpu_safety";
 
 static int pid1;
 static int pid2;
@@ -350,8 +351,10 @@ void test_msg_underpriviliged_reciever_payload(void){
 	svc_switch_context_exit();
 }
 
-void check_mpu_safety(tcb_t *thread){
-	uint32_t *pointer = thread->memory->start_address + 50;
+void check_mpu_safety(){
+	puts("MPU-Test: -----------------");
+	tcb_t *thread = active_thread;
+	uint32_t *pointer = thread->memory->start_address + 10;
 	printf("Writing to Pointer: %#010x\n", pointer);
 	*pointer = 0xAAAA;
 	printf("Pointer Value: %#010x\n", *pointer);
@@ -372,6 +375,20 @@ void check_mpu_safety(tcb_t *thread){
 	*pointer = 0xAAAA;
 	printf("Pointer Value: %#010x\n", *pointer);
 }
+
+void test_check_mpu_safety(){
+	thread_description thread;
+	thread.stacksize = 1024;
+	thread.flags = CREATE_WOUT_YIELD | CREATE_STACKTEST;
+	thread.priority = 14;
+	thread.function = check_mpu_safety;
+	thread.name = cmpu_name;
+	pid1 = svc_thread_create(&thread);
+	printf("PID: %d\n", pid1);
+	svc_thread_sleep();
+}
+
+
 
 int main(void)
 {
@@ -422,7 +439,7 @@ int main(void)
     			break;
     	case 8: measure_systick();
     			break;
-    	case 9: check_mpu_safety(thread);
+    	case 9: test_check_mpu_safety();
     			break;
     	default: break;
     }
