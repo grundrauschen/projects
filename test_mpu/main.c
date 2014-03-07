@@ -62,7 +62,6 @@ void receiver(void){
 
 void receiver_systick(void){
 	puts("This is Receiver\n");
-	while (1){
 		msg_t m;
 		svc_msg_receive(&m);
 		uint32_t r_time;
@@ -72,8 +71,7 @@ void receiver_systick(void){
 		printf("Sender Systick %d\n", m.content.value);
 		printf("Resceiver Systick %d\n", r_time);
 		printf("Ticks for transport %d\n", diff);
-
-	}
+		while (1);
 }
 
 void receiver_reply(void){
@@ -222,7 +220,7 @@ void test_msg_priv_reciever_waiting(void){
 	thread2.function = sender;
 	thread2.name = tmur6;
 	pid2 = thread_create_desc(&thread2);
-	svc_switch_context_exit();
+	svc_thread_sleep();
 }
 
 void measure_systick(void){
@@ -243,7 +241,7 @@ void measure_systick(void){
 	thread2.function = sender_systick;
 	thread2.name = tmur6;
 	pid2 = svc_thread_create(&thread2);
-	svc_switch_context_exit();
+	svc_thread_sleep();
 }
 
 void test_wait_and_reply(void){
@@ -264,7 +262,7 @@ void test_wait_and_reply(void){
 	thread2.function = sender_wait_for_reply;
 	thread2.name = tmur12;
 	pid2 = svc_thread_create(&thread2);
-	svc_switch_context_exit();
+	svc_thread_sleep();
 }
 
 void test_msg_priv_reciever_waiting_buffer(void){
@@ -285,7 +283,7 @@ void test_msg_priv_reciever_waiting_buffer(void){
 	thread2.function = sender;
 	thread2.name = tmur10;
 	pid2 = svc_thread_create(&thread2);
-	svc_switch_context_exit();
+	svc_thread_sleep();
 }
 
 void test_msg_priv_reciever_waiting_payload(void){
@@ -293,7 +291,7 @@ void test_msg_priv_reciever_waiting_payload(void){
 	thread_description thread;
 	thread.stacksize = 512;
 	thread.flags = CREATE_WOUT_YIELD | CREATE_STACKTEST;
-	thread.priority = 12;
+	thread.priority = 11;
 	thread.function = receiver_payload;
 	thread.name = tmur7;
 	pid1 = svc_thread_create(&thread);
@@ -306,7 +304,7 @@ void test_msg_priv_reciever_waiting_payload(void){
 	thread2.function = sender_payload;
 	thread2.name = tmur8;
 	pid2 = svc_thread_create(&thread2);
-	svc_switch_context_exit();
+	svc_thread_sleep();
 }
 
 void test_msg_underpriviliged_reciever(void){
@@ -327,7 +325,7 @@ void test_msg_underpriviliged_reciever(void){
 	thread2.function = sender;
 	thread2.name = tmur2;
 	pid2 = svc_thread_create(&thread2);
-	svc_switch_context_exit();
+	svc_thread_sleep();
 }
 
 void test_msg_underpriviliged_reciever_payload(void){
@@ -348,7 +346,7 @@ void test_msg_underpriviliged_reciever_payload(void){
 	thread2.function = sender_payload;
 	thread2.name = tmur4;
 	pid2 = svc_thread_create(&thread2);
-	svc_switch_context_exit();
+	svc_thread_sleep();
 }
 
 void check_mpu_safety(){
@@ -399,8 +397,24 @@ int main(void)
     printf("Size of the Stack: %d\n", thread->stack_size );
     printf("Controll-Register: %#010x\n\n", __get_CONTROL());
 
+    /*
+     * Testcase 1: tests to create a thread
+     * Testcase 2: test to send a message to a non waiting receiver
+     * Testcase 3: test to send a message to a waiting receiver
+     * Testcase 4: test to send a message with payload to a non waiting receiver
+     * Testcase 5: test to send a message with payload to a waiting receiver
+     * Testcase 6: test to send a message to a receiver with buffer
+     * Testcase 7: test to use send_and_reply
+     * Testcase 8: measuring systick between sending and receiving process
+     * 				time includes sending the message, a thread switch and optional a mpu configuration
+     * Testcase 9: test the mpu functionality
+     *
+     * USE TESTCASE 2-7 ONLY WITHOUT ACTIVATED MPU BECAUSE OF printf
+     * DEACTIVATE IT IN Riot/core/include/conf.h
+     *
+     */
+    testcase = 8;
 
-    testcase = 9;
     printf("Testcase: %d\n\n", testcase);
 
     // Configure Systick
@@ -408,14 +422,9 @@ int main(void)
     *STCVR = 0;         // force a re-load of the counter value register
     *STCSR = 5;         // enable FCLK count without interrupt
 
-	printf("Systick %d\n", *STCVR);
-	printf("Systick %d\n", *STCVR);
-
-    printf("SysTick CTRL: %#010x\n", SysTick->CTRL);
-
 	size = strlen(string);
 
-	//disable for systick test
+	//run benchmark in privileged mode
 	if (testcase != 8){
 		enable_unprivileged_mode();
 	}
@@ -443,34 +452,5 @@ int main(void)
     			break;
     	default: break;
     }
-
-
-
-	//testfunk();
-
-/*	uint32_t *pointer = thread->memory->start_address + 50;
-	printf("Writing to Pointer: %#010x\n", pointer);
-	*pointer = 0xAAAA;
-	printf("Pointer Value: %#010x\n", *pointer);
-
-
-	printf("TCB Endaddress: %#010x\n\n", thread->memory->end_address);
-
-	uint32_t *pointer = thread->memory->start_address + 40;
-	int i = 0;
-	for (i=0; i < 1000; i++){
-	printf("Writing to Pointer: %#010x\n", pointer);
-	*pointer = 0xAAAAAAAA;
-	printf("Pointer Value: %#010x\n", *pointer);
-	pointer = pointer + 10;
-	}
-
-	pointer = thread->memory->start_address - 1;
-	printf("Writing to Pointer: %#010x\n", pointer);
-	*pointer = 0xAAAA;
-	printf("Pointer Value: %#010x\n", *pointer); */
-
-    //(1);
-
     svc_thread_sleep();
 }
